@@ -16,7 +16,32 @@ const container = ref(null);
 const sliderPosition = ref(50);
 const imagesLoaded = ref(false);
 const error = ref(false);
+const loadedImages = ref(new Map());
 let isSliding = false;
+
+const loadImage = (src) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img.src);
+    img.onerror = () => reject();
+    
+    fetch(src, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      }
+    })
+    .then(response => response.blob())
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      img.src = url;
+      loadedImages.value.set(src, url);
+    })
+    .catch(() => {
+      loadedImages.value.set(src, src);
+      img.src = src; // Fallback al método original si falla
+    });
+  });
+};
 
 const loadImages = async () => {
   imagesLoaded.value = false;
@@ -32,15 +57,6 @@ const loadImages = async () => {
     console.error('Error loading images:', err);
     error.value = true;
   }
-};
-
-const loadImage = (src) => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve();
-    img.onerror = () => reject();
-    img.src = src;
-  });
 };
 
 const startSliding = (e) => {
@@ -90,8 +106,12 @@ onUnmounted(() => {
       <span>Cargando imágenes...</span>
     </div>
     <div v-else class="comparison-slider" ref="container">
-      <div class="before-image" :style="{ backgroundImage: `url('${beforeImage}')` }"></div>
-      <div class="after-image" :style="{ backgroundImage: `url('${afterImage}')`, width: `${sliderPosition}%` }"></div>
+      <div class="before-image" 
+           :style="{ backgroundImage: `url('${loadedImages.get(beforeImage) || ''}')` }">
+      </div>
+      <div class="after-image" 
+           :style="{ backgroundImage: `url('${loadedImages.get(afterImage) || ''}')`, width: `${sliderPosition}%` }">
+      </div>
       <div class="slider-handle" 
            @mousedown="startSliding"
            @touchstart="startSliding"

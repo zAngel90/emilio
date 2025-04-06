@@ -1,18 +1,64 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { API_ENDPOINTS } from '../config/api'
 
 const router = useRouter()
 const items = ref([])
 const loading = ref(false)
 const error = ref(null)
+const loadedImages = ref(new Map())
+
+const loadImageWithHeaders = (src) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img.src);
+    img.onerror = () => reject();
+    
+    fetch(src, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      }
+    })
+    .then(response => response.blob())
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      img.src = url;
+      loadedImages.value.set(src, url);
+    })
+    .catch(() => {
+      loadedImages.value.set(src, src);
+      img.src = src; // Fallback al método original si falla
+    });
+  });
+};
 
 const fetchGalleryItems = async () => {
   loading.value = true
   try {
-    const response = await fetch('http://localhost:3000/api/gallery/items')
+    const response = await fetch(API_ENDPOINTS.GALLERY.GET_ITEMS, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      }
+    })
     const data = await response.json()
-    items.value = data.filter(item => !item.is_before_after).slice(0, 6) // Solo mostramos 6 imágenes
+    items.value = data
+      .filter(item => !item.is_before_after)
+      .slice(0, 6)
+      .map(item => ({
+        ...item,
+        images: item.images.map(img => ({
+          ...img,
+          url: img.url.replace('http://', 'https://')
+        }))
+      }))
+
+    // Precargar todas las imágenes
+    for (const item of items.value) {
+      if (item.images[0]?.url) {
+        await loadImageWithHeaders(item.images[0].url);
+      }
+    }
   } catch (err) {
     error.value = 'Error al cargar la galería'
     console.error(err)
@@ -50,8 +96,9 @@ onMounted(() => {
              :key="item.id" 
              class="gallery-item"
              @click="goToGallery">
-          <img :src="item.images[0]?.url" 
-               :alt="item.title">
+          <div class="image-container" 
+               :style="{ backgroundImage: `url('${loadedImages.get(item.images[0]?.url) || ''}')` }">
+          </div>
           <div class="item-overlay">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
@@ -93,14 +140,15 @@ onMounted(() => {
   border-radius: 8px;
 }
 
-.gallery-item img {
+.image-container {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  background-size: cover;
+  background-position: center;
   transition: transform 0.3s ease;
 }
 
-.gallery-item:hover img {
+.gallery-item:hover .image-container {
   transform: scale(1.05);
 }
 
@@ -184,6 +232,10 @@ onMounted(() => {
   text-align: center;
   color: #dc3545;
   padding: 2rem;
+}
+
+.gallery-item img {
+  display: none;
 }
 
 @media (max-width: 768px) {

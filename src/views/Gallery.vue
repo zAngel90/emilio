@@ -1,55 +1,154 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import BeforeAfterSlider from '../components/BeforeAfterSlider.vue'
+import { API_ENDPOINTS } from '../config/api'
 
 const items = ref([])
 const loading = ref(false)
 const error = ref(null)
 const selectedItem = ref(null)
 const featuredItem = ref(null)
+const loadedImages = ref(new Map())
+
+const getImageUrl = (url) => {
+  if (!url) return '';
+  return loadedImages.value?.get(url) || url;
+};
+
+const loadImageWithHeaders = (src) => {
+  if (!src) return Promise.resolve('');
+  
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      if (loadedImages.value) {
+        loadedImages.value.set(src, img.src);
+      }
+      resolve(img.src);
+    };
+    img.onerror = () => {
+      if (loadedImages.value) {
+        loadedImages.value.set(src, src);
+      }
+      resolve(src);
+    };
+    
+    fetch(src, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      }
+    })
+    .then(response => response.blob())
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      if (loadedImages.value) {
+        loadedImages.value.set(src, url);
+      }
+      img.src = url;
+    })
+    .catch(() => {
+      if (loadedImages.value) {
+        loadedImages.value.set(src, src);
+      }
+      img.src = src;
+    });
+  });
+};
+
+const preloadImage = async (url) => {
+  if (!url) return '';
+  if (!loadedImages.value.has(url)) {
+    try {
+      await loadImageWithHeaders(url);
+    } catch (err) {
+      console.error('Error loading image:', err);
+      loadedImages.value.set(url, url);
+    }
+  }
+  return loadedImages.value.get(url);
+};
 
 const fetchGalleryItems = async () => {
-  loading.value = true
+  loading.value = true;
   try {
-    const response = await fetch('https://2e91-2a02-4780-28-1c83-00-1.ngrok-free.app/api/gallery/items')
-    const data = await response.json()
+    const response = await fetch(API_ENDPOINTS.GALLERY.GET_ITEMS, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      }
+    });
     
-    // Separar las imágenes normales de las de antes/después
-    items.value = data.filter(item => !item.is_before_after)
+    // Verificar si la respuesta es exitosa
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     
-    // Encontrar el primer item de antes/después
-    const beforeAfterItem = data.find(item => item.is_before_after)
+    // Verificar el tipo de contenido
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      throw new Error(`Expected JSON but got ${contentType}`);
+    }
     
+    const data = await response.json();
+    console.log('Datos recibidos:', data);
+    
+    // Procesar y cargar las imágenes normales
+    items.value = data.filter(item => !item.is_before_after);
+    
+    // Precargar todas las imágenes
+    for (const item of items.value) {
+      if (item.images[0]?.url) {
+        await preloadImage(item.images[0].url);
+      }
+    }
+    
+    // Procesar imágenes antes/después
+    const beforeAfterItem = data.find(item => item.is_before_after);
     if (beforeAfterItem) {
-      // Asegurarse de que tenemos las imágenes antes y después
-      const beforeImage = beforeAfterItem.images.find(img => img.type === 'before')
-      const afterImage = beforeAfterItem.images.find(img => img.type === 'after')
+      const beforeImage = beforeAfterItem.images.find(img => img.type === 'before');
+      const afterImage = beforeAfterItem.images.find(img => img.type === 'after');
       
       if (beforeImage && afterImage) {
+        await Promise.all([
+          preloadImage(beforeImage.url),
+          preloadImage(afterImage.url)
+        ]);
+        
         featuredItem.value = {
           ...beforeAfterItem,
           beforeImage: beforeImage.url,
           afterImage: afterImage.url
-        }
+        };
       }
     }
   } catch (err) {
-    error.value = 'Error al cargar la galería'
-    console.error(err)
+    error.value = `Error al cargar la galería: ${err.message}`;
+    console.error('Error detallado:', err);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
-const openModal = (item) => {
-  selectedItem.value = item
-  document.body.style.overflow = 'hidden'
-}
+const openModal = async (item) => {
+  loading.value = true;
+  selectedItem.value = item;
+  document.body.style.overflow = 'hidden';
+  
+  try {
+    if (item.images && item.images[0]?.url) {
+      await loadImageWithHeaders(item.images[0].url);
+    }
+  } catch (error) {
+    console.error('Error loading modal image:', error);
+  } finally {
+    loading.value = false;
+  }
+};
 
 const closeModal = () => {
-  selectedItem.value = null
-  document.body.style.overflow = 'auto'
-}
+  selectedItem.value = null;
+  document.body.style.overflow = 'auto';
+  loading.value = false;
+};
 
 const handleImageError = (e) => {
   e.target.src = '/placeholder-image.jpg'
@@ -100,9 +199,9 @@ onMounted(() => {
                :key="item.id" 
                class="gallery-item"
                @click="openModal(item)">
-            <img :src="item.images[0]?.url" 
-                 :alt="item.title"
-                 @error="handleImageError">
+            <div class="image-container" 
+                 :style="{ backgroundImage: `url('${getImageUrl(item.images[0]?.url)}')` }">
+            </div>
             <div class="item-overlay">
               <div class="expand-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -116,16 +215,29 @@ onMounted(() => {
     </div>
 
     <!-- Modal -->
-    <div v-if="selectedItem" class="modal" @click="closeModal">
-      <div class="modal-content" @click.stop>
-        <button class="close-button" @click="closeModal">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 6L6 18M6 6l12 12" />
-          </svg>
-        </button>
-        <img :src="selectedItem.images[0]?.url" :alt="selectedItem.title">
+    <Teleport to="body">
+      <div v-if="selectedItem" class="modal-overlay" @click="closeModal">
+        <div class="modal-container" @click.stop>
+          <button class="modal-close" @click="closeModal">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+          <div v-if="loading" class="loading-modal">
+            <div class="spinner"></div>
+          </div>
+          <div v-else class="modal-image-container">
+            <img 
+              v-if="selectedItem.images[0]?.url"
+              :src="getImageUrl(selectedItem.images[0].url)"
+              :alt="selectedItem.title || 'Imagen en pantalla completa'"
+              class="modal-image"
+              @error="handleImageError"
+            />
+          </div>
+        </div>
       </div>
-    </div>
+    </Teleport>
   </div>
 </template>
 
@@ -230,14 +342,15 @@ h2 {
   cursor: pointer;
 }
 
-.gallery-item img {
+.image-container {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  background-size: cover;
+  background-position: center;
   transition: transform 0.3s ease;
 }
 
-.gallery-item:hover img {
+.gallery-item:hover .image-container {
   transform: scale(1.05);
 }
 
@@ -282,40 +395,52 @@ h2 {
 }
 
 /* Modal styles */
-.modal {
+.modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
+  width: 100%;
+  height: 100%;
   background: rgba(0, 0, 0, 0.9);
   display: flex;
-  align-items: center;
   justify-content: center;
-  z-index: 1000;
+  align-items: center;
+  z-index: 9999;
 }
 
-.modal-content {
+.modal-container {
   position: relative;
-  max-width: 90%;
-  max-height: 90vh;
+  width: 90vw;
+  height: 90vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.modal-content img {
+.modal-image-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-image {
   max-width: 100%;
   max-height: 90vh;
   object-fit: contain;
+  border-radius: 4px;
 }
 
-.close-button {
+.modal-close {
   position: absolute;
-  top: -50px;
+  top: -40px;
   right: 0;
-  background: none;
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  border-radius: 50%;
   width: 40px;
   height: 40px;
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -324,19 +449,19 @@ h2 {
   transition: all 0.3s ease;
 }
 
-.close-button svg {
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: white;
+}
+
+.modal-close svg {
   width: 100%;
   height: 100%;
   stroke: white;
   transition: transform 0.3s ease;
 }
 
-.close-button:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-color: white;
-}
-
-.close-button:hover svg {
+.modal-close:hover svg {
   transform: rotate(90deg);
 }
 
@@ -366,6 +491,23 @@ h2 {
   text-align: center;
   color: #dc3545;
   padding: 2rem;
+}
+
+.loading-modal {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.loading-modal .spinner {
+  width: 60px;
+  height: 60px;
+  border: 5px solid #fff;
+  border-top: 5px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
 @media (max-width: 968px) {

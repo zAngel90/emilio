@@ -1,14 +1,42 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useAuth } from '../composables/useAuth'
+import { API_ENDPOINTS } from '../config/api'
 
 const { logout } = useAuth()
 const items = ref([])
 const loading = ref(false)
 const error = ref(null)
+const selectedFiles = ref([])
 const isBeforeAfter = ref(false)
+const successMessage = ref('')
 const beforeImage = ref(null)
 const afterImage = ref(null)
+const loadedImages = ref(new Map())
+
+const loadImageWithHeaders = (src) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img.src);
+    img.onerror = () => reject();
+    
+    fetch(src, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      }
+    })
+    .then(response => response.blob())
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      img.src = url;
+      loadedImages.value.set(src, url);
+    })
+    .catch(() => {
+      loadedImages.value.set(src, src);
+      img.src = src; // Fallback al método original si falla
+    });
+  });
+};
 
 const handleImageError = (e) => {
   e.target.src = '/placeholder-image.jpg' // Imagen por defecto si falla la carga
@@ -17,15 +45,33 @@ const handleImageError = (e) => {
 const fetchGalleryItems = async () => {
   loading.value = true
   try {
-    const response = await fetch('https://2e91-2a02-4780-28-1c83-00-1.ngrok-free.app/api/gallery/items')
+    const response = await fetch(API_ENDPOINTS.GALLERY.GET_ITEMS, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      }
+    })
+    if (!response.ok) {
+      throw new Error('Error al obtener los items')
+    }
     const data = await response.json()
     items.value = data
-  } catch (err) {
-    error.value = 'Error al cargar los items de la galería'
-    console.error(err)
+
+    // Precargar todas las imágenes
+    for (const item of items.value) {
+      if (item.images[0]?.url) {
+        await loadImageWithHeaders(item.images[0].url);
+      }
+    }
+  } catch (error) {
+    console.error('Error:', error)
+    error.value = 'Error al cargar los items'
   } finally {
     loading.value = false
   }
+}
+
+const handleFileSelect = (event) => {
+  selectedFiles.value = Array.from(event.target.files)
 }
 
 const handleBeforeImageSelect = (event) => {
@@ -36,86 +82,83 @@ const handleAfterImageSelect = (event) => {
   afterImage.value = event.target.files[0]
 }
 
-const handleFileUpload = async (event) => {
+const handleFileUpload = async () => {
   if (isBeforeAfter.value) {
     if (!beforeImage.value || !afterImage.value) {
-      error.value = 'Debes seleccionar ambas imágenes (antes y después)'
+      error.value = 'Por favor, selecciona ambas imágenes (antes y después)'
       return
     }
-
-    const formData = new FormData()
+  } else if (!selectedFiles.value.length) {
+    error.value = 'Por favor, selecciona al menos una imagen'
+    return
+  }
+  
+  loading.value = true
+  error.value = ''
+  successMessage.value = ''
+  
+  const formData = new FormData()
+  
+  if (isBeforeAfter.value) {
     formData.append('images', beforeImage.value)
     formData.append('images', afterImage.value)
-    formData.append('is_before_after', true)
-
-    try {
-      const response = await fetch('https://2e91-2a02-4780-28-1c83-00-1.ngrok-free.app/api/gallery/items', {
-        method: 'POST',
-        body: formData
-      })
-      
-      if (!response.ok) {
-        throw new Error('Error al subir las imágenes')
-      }
-      
-      await fetchGalleryItems()
-      // Limpiar los inputs y estados
-      beforeImage.value = null
-      afterImage.value = null
-      document.getElementById('beforeImage').value = ''
-      document.getElementById('afterImage').value = ''
-      isBeforeAfter.value = false
-    } catch (err) {
-      error.value = 'Error al subir las imágenes'
-      console.error(err)
-    }
+    formData.append('is_before_after', 'true')
   } else {
-    const formData = new FormData()
-    const files = event.target.files
+    selectedFiles.value.forEach(file => {
+      formData.append('images', file)
+    })
+    formData.append('is_before_after', 'false')
+  }
+
+  try {
+    const response = await fetch(API_ENDPOINTS.GALLERY.CREATE_ITEM, {
+      method: 'POST',
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      },
+      body: formData
+    })
+
+    if (!response.ok) {
+      throw new Error('Error al subir las imágenes')
+    }
+
+    // Limpiar los campos después de una subida exitosa
+    selectedFiles.value = []
+    beforeImage.value = null
+    afterImage.value = null
     
-    if (!files.length) return
-
-    for (let i = 0; i < files.length; i++) {
-      formData.append('images', files[i])
-    }
-
-    formData.append('is_before_after', false)
-
-    try {
-      const response = await fetch('https://2e91-2a02-4780-28-1c83-00-1.ngrok-free.app/api/gallery/items', {
-        method: 'POST',
-        body: formData
-      })
-      
-      if (!response.ok) {
-        throw new Error('Error al subir las imágenes')
-      }
-      
-      await fetchGalleryItems()
-      event.target.value = ''
-    } catch (err) {
-      error.value = 'Error al subir las imágenes'
-      console.error(err)
-    }
+    // Recargar la galería
+    await fetchGalleryItems()
+    successMessage.value = 'Imágenes subidas correctamente'
+  } catch (error) {
+    console.error('Error:', error)
+    error.value = error.message
+  } finally {
+    loading.value = false
   }
 }
 
 const deleteItem = async (id) => {
-  if (!confirm('¿Estás seguro de que quieres eliminar esta imagen?')) return
-
+  if (!confirm('¿Estás seguro de que quieres eliminar este item?')) return
+  
   try {
-    const response = await fetch(`https://2e91-2a02-4780-28-1c83-00-1.ngrok-free.app/api/gallery/items/${id}`, {
-      method: 'DELETE'
+    const response = await fetch(API_ENDPOINTS.GALLERY.DELETE_ITEM(id), {
+      method: 'DELETE',
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      }
     })
-    
+
     if (!response.ok) {
-      throw new Error('Error al eliminar la imagen')
+      throw new Error('Error al eliminar el item')
     }
-    
+
     await fetchGalleryItems()
-  } catch (err) {
-    error.value = 'Error al eliminar la imagen'
-    console.error(err)
+    successMessage.value = 'Item eliminado correctamente'
+  } catch (error) {
+    console.error('Error:', error)
+    error.value = error.message
   }
 }
 
@@ -137,6 +180,15 @@ onMounted(() => {
     <main class="admin-content">
       <section class="upload-section">
         <h2>Subir Nuevas Imágenes</h2>
+        
+        <div v-if="successMessage" class="success-message">
+          {{ successMessage }}
+        </div>
+        
+        <div v-if="error" class="error-message">
+          {{ error }}
+        </div>
+
         <div class="upload-container">
           <div class="upload-options">
             <label class="before-after-toggle">
@@ -185,31 +237,35 @@ onMounted(() => {
                 {{ afterImage.name }}
               </span>
             </div>
-
-            <button 
-              @click="handleFileUpload"
-              class="submit-button"
-              :disabled="!beforeImage || !afterImage"
-            >
-              Subir Imágenes Antes/Después
-            </button>
           </div>
 
           <!-- Subida de imágenes normales -->
-          <div v-else>
+          <div v-else class="normal-upload">
             <input 
               type="file" 
               id="fileUpload" 
               multiple 
               accept="image/*"
-              @change="handleFileUpload"
+              @change="handleFileSelect"
               class="file-input"
             >
             <label for="fileUpload" class="upload-button">
               <i class="fas fa-cloud-upload-alt"></i>
               Seleccionar Imágenes
             </label>
+            <div v-if="selectedFiles.length" class="selected-files">
+              {{ selectedFiles.length }} archivo(s) seleccionado(s)
+            </div>
           </div>
+
+          <button 
+            @click="handleFileUpload"
+            class="submit-button"
+            :disabled="loading || (isBeforeAfter ? (!beforeImage || !afterImage) : !selectedFiles.length)"
+          >
+            <span v-if="loading">Subiendo...</span>
+            <span v-else>{{ isBeforeAfter ? 'Subir Imágenes Antes/Después' : 'Subir Imágenes' }}</span>
+          </button>
         </div>
       </section>
 
@@ -228,11 +284,9 @@ onMounted(() => {
         <div v-else class="gallery-grid">
           <div v-for="item in items" :key="item.id" class="gallery-item">
             <div class="image-container">
-              <img 
-                :src="item.images[0]?.url" 
-                :alt="item.title"
-                @error="e => e.target.src = '/placeholder-image.jpg'"
-              >
+              <div class="image-background"
+                   :style="{ backgroundImage: `url('${loadedImages.get(item.images[0]?.url) || ''}')` }">
+              </div>
               <div v-if="item.is_before_after" class="before-after-badge">
                 Antes/Después
               </div>
@@ -369,12 +423,14 @@ h2 {
 .image-container {
   position: relative;
   aspect-ratio: 4/3;
+  overflow: hidden;
 }
 
-.gallery-item img {
+.image-background {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  background-size: cover;
+  background-position: center;
 }
 
 .before-after-badge {
@@ -509,5 +565,34 @@ h2 {
 
 .submit-button:not(:disabled):hover {
   opacity: 0.9;
+}
+
+.success-message {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.error-message {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.normal-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+.selected-files {
+  font-size: 0.9rem;
+  color: #666;
+  margin-top: 0.5rem;
 }
 </style> 
