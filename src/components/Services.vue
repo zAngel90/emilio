@@ -26,16 +26,16 @@ const services = [
     features: ['Restauración completa', 'Brillo natural', 'Máxima resistencia']
   },
   {
+    title: 'Pulido de Hormigón',
+    description: 'Transformamos sus suelos de hormigón en superficies elegantes y duraderas.',
+    icon: '⬡',
+    features: ['Acabado profesional', 'Alta durabilidad', 'Superficie uniforme']
+  },
+  {
     title: 'Cristalizado',
     description: 'Aplicamos tratamientos de cristalizado para un brillo duradero.',
     icon: '●',
     features: ['Alto brillo', 'Protección superior', 'Mantenimiento fácil']
-  },
-  {
-    title: 'Piedra Natural',
-    description: 'Recuperamos la belleza original de todo tipo de piedra natural.',
-    icon: '▲',
-    features: ['Limpieza profunda', 'Sellado protector', 'Acabado premium']
   }
 ]
 </script>

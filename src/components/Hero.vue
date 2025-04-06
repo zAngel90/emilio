@@ -11,7 +11,10 @@
         <h2>HORMIGÓN, MÁRMOL Y TERRAZOS</h2>
         <p class="description">Transformamos y renovamos sus superficies con precisión y excelencia</p>
         <div class="cta-buttons">
-          <a href="#contacto" class="cta-button primary">Solicitar Presupuesto</a>
+          <a href="#contacto" class="cta-button primary">
+            <i class="fas fa-phone"></i>
+            Contactar Ahora
+          </a>
           <a href="#servicios" class="cta-button secondary">Ver Servicios</a>
         </div>
         <div class="hero-badge">
@@ -30,6 +33,8 @@
   width: 100%;
   min-height: 100vh;
   background: url('https://i.postimg.cc/Vk02hDw4/IMAGEN-PULIDO-Y-ABRILLANTADO-DE-MARMOL-CREMA.jpg') center/cover;
+  background-position: center center;
+  background-repeat: no-repeat;
   display: flex;
   align-items: flex-start;
   color: white;
@@ -111,11 +116,62 @@
   font-weight: 500;
 }
 
+.cta-buttons {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.cta-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.cta-button.primary {
+  background-color: var(--primary-color);
+  color: #333;
+  border: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.cta-button.primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  background-color: #fff;
+  color: var(--primary-color);
+}
+
+.cta-button.secondary {
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #333;
+  border: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.cta-button.secondary:hover {
+  background-color: #fff;
+  color: var(--primary-color);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
 @media (max-width: 768px) {
   .hero {
     min-height: calc(100vh - 60px);
     margin-top: 0;
     padding-top: calc(var(--navbar-height) - 1rem);
+    background-size: 200% auto;
+    background-position: center 15%;
+    overflow: hidden;
   }
 
   .hero-content {
@@ -154,6 +210,20 @@
 
   .badge-content .text {
     font-size: 0.9rem;
+  }
+
+  .cta-buttons {
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    margin-top: 1.5rem;
+  }
+
+  .cta-button {
+    width: 100%;
+    justify-content: center;
+    padding: 0.875rem 1.5rem;
+    font-size: 1.1rem;
   }
 }
 </style> 

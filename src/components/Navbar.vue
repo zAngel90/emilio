@@ -29,19 +29,6 @@ const scrollToSection = async (sectionId) => {
 
 <template>
   <header class="header">
-    <div class="top-bar">
-      <div class="container">
-        <div class="contact-info">
-          <a href="tel:665402571">
-            <i class="fas fa-phone"></i> 665 402 571
-          </a>
-          <a href="mailto:info@emilioosado.com">
-            <i class="fas fa-envelope"></i> info@emilioosado.com
-          </a>
-        </div>
-      </div>
-    </div>
-    
     <nav class="navbar">
       <div class="nav-container">
         <router-link to="/" class="logo" @click="scrollToSection('')">
@@ -62,7 +49,7 @@ const scrollToSection = async (sectionId) => {
           <a href="#servicios" @click.prevent="scrollToSection('servicios')">Servicios</a>
           <router-link to="/galeria" @click="isMenuOpen = false">Galería</router-link>
           <a href="#sobre-nosotros" @click.prevent="scrollToSection('sobre-nosotros')">Sobre Nosotros</a>
-          <a href="#contacto" @click.prevent="scrollToSection('contacto')">Contacto</a>
+          <a href="#contacto" @click.prevent="scrollToSection('contacto')" class="contact-link">Contacto</a>
         </div>
       </div>
     </nav>
@@ -80,35 +67,12 @@ const scrollToSection = async (sectionId) => {
   z-index: 1000;
   background: white;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  height: var(--navbar-height);
-}
-
-.top-bar {
-  background: #333;
-  color: #f5f5f5;
-  height: 36px;
-  display: flex;
-  align-items: center;
-}
-
-.contact-info {
-  display: flex;
-  gap: 3rem;
-  font-size: 0.85rem;
-  padding: 0 1rem;
-}
-
-.contact-info a {
-  color: #f5f5f5;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  height: 80px;
 }
 
 .navbar {
   background: white;
-  height: calc(var(--navbar-height) - 36px);
+  height: 80px;
   display: flex;
   align-items: center;
   padding: 0.5rem 0;
@@ -187,6 +151,20 @@ const scrollToSection = async (sectionId) => {
 
 .menu-toggle {
   display: none;
+}
+
+.contact-link {
+  background-color: var(--primary-color);
+  color: white !important;
+  padding: 0.5rem 1.5rem !important;
+  border-radius: 4px;
+  transition: all 0.3s ease !important;
+}
+
+.contact-link:hover {
+  background-color: var(--primary-color-dark, #1a3c7d);
+  opacity: 1 !important;
+  transform: translateY(-2px);
 }
 
 @media (max-width: 768px) {
@@ -281,6 +259,12 @@ const scrollToSection = async (sectionId) => {
 
   .menu-toggle.active span:nth-child(3) {
     transform: rotate(-45deg) translate(5px, -5px);
+  }
+
+  .contact-link {
+    background-color: var(--primary-color);
+    margin: 1rem auto;
+    width: 80% !important;
   }
 }
 </style> 
