@@ -34,14 +34,14 @@ const handleSubmit = () => {
                   <circle cx="12" cy="12" r="10"/>
                   <path d="M12 6v6l4 2"/>
                 </svg>
-                Lunes - Viernes: 8:00 - 18:00
+                Lunes - Sábado: 8:00 - 16:00
               </p>
               <p>
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                  <path d="M16 2v4M8 2v4M3 10h18"/>
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <path d="M22 6l-10 7L2 6"/>
                 </svg>
-                Sábados: Con cita previa
+                <a href="mailto:emilioosado@hotmail.com">emilioosado@hotmail.com</a>
               </p>
             </div>
             <p class="service-area">
@@ -49,7 +49,7 @@ const handleSubmit = () => {
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
                 <circle cx="12" cy="10" r="3"/>
               </svg>
-              Servicio en toda la provincia de Málaga
+              Servicio en toda la provincia de Cádiz y alrededores
             </p>
           </div>
         </div>
