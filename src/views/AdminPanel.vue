@@ -17,7 +17,7 @@ const handleImageError = (e) => {
 const fetchGalleryItems = async () => {
   loading.value = true
   try {
-    const response = await fetch('http://localhost:3000/api/gallery/items')
+    const response = await fetch('https://2e91-2a02-4780-28-1c83-00-1.ngrok-free.app/api/gallery/items')
     const data = await response.json()
     items.value = data
   } catch (err) {
@@ -49,7 +49,7 @@ const handleFileUpload = async (event) => {
     formData.append('is_before_after', true)
 
     try {
-      const response = await fetch('http://localhost:3000/api/gallery/items', {
+      const response = await fetch('https://2e91-2a02-4780-28-1c83-00-1.ngrok-free.app/api/gallery/items', {
         method: 'POST',
         body: formData
       })
@@ -82,7 +82,7 @@ const handleFileUpload = async (event) => {
     formData.append('is_before_after', false)
 
     try {
-      const response = await fetch('http://localhost:3000/api/gallery/items', {
+      const response = await fetch('https://2e91-2a02-4780-28-1c83-00-1.ngrok-free.app/api/gallery/items', {
         method: 'POST',
         body: formData
       })
@@ -104,7 +104,7 @@ const deleteItem = async (id) => {
   if (!confirm('¿Estás seguro de que quieres eliminar esta imagen?')) return
 
   try {
-    const response = await fetch(`http://localhost:3000/api/gallery/items/${id}`, {
+    const response = await fetch(`https://2e91-2a02-4780-28-1c83-00-1.ngrok-free.app/api/gallery/items/${id}`, {
       method: 'DELETE'
     })
     

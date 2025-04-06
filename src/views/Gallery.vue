@@ -11,7 +11,7 @@ const featuredItem = ref(null)
 const fetchGalleryItems = async () => {
   loading.value = true
   try {
-    const response = await fetch('http://localhost:3000/api/gallery/items')
+    const response = await fetch('https://2e91-2a02-4780-28-1c83-00-1.ngrok-free.app/api/gallery/items')
     const data = await response.json()
     
     // Separar las imágenes normales de las de antes/después
