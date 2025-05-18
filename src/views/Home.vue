@@ -9,9 +9,8 @@ import HomeGallery from '../components/HomeGallery.vue'
 <template>
   <div class="home">
     <Hero />
-    <Services />
     <HomeGallery />
-    <About />
+    <Services />
     <Contact />
   </div>
 </template> 

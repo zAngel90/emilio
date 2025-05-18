@@ -72,7 +72,17 @@
           </ul>
         </div>
       </div>
-      
+     <div class="footer-section">
+  <h3>Información Legal</h3>
+  <ul>
+    <li><router-link to="/politica-privacidad">Política de Privacidad</router-link></li>
+    <li><router-link to="/aviso-legal">Aviso Legal</router-link></li>
+    <li><router-link to="/terminos-servicio">Términos de Servicio</router-link></li>
+    <li><router-link to="/contacto">Contacto</router-link></li>
+  </ul>
+</div>
+
+
       <div class="footer-bottom">
         <p>&copy; {{ new Date().getFullYear() }} Emilio Osado - Pulidos y Tratamientos. Todos los derechos reservados.</p>
       </div>

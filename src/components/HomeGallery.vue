@@ -41,7 +41,18 @@ const fetchGalleryItems = async () => {
         'ngrok-skip-browser-warning': 'true'
       }
     })
+    if (!response.ok) {
+      throw new Error('Error en la respuesta del servidor')
+    }
     const data = await response.json()
+    
+    // Verificar que data sea un array
+    if (!Array.isArray(data)) {
+      console.error('La respuesta no es un array:', data)
+      error.value = 'Error en el formato de datos'
+      return
+    }
+
     items.value = data
       .filter(item => !item.is_before_after)
       .slice(0, 6)
@@ -61,7 +72,7 @@ const fetchGalleryItems = async () => {
     }
   } catch (err) {
     error.value = 'Error al cargar la galería'
-    console.error(err)
+    console.error('Error detallado:', err)
   } finally {
     loading.value = false
   }
