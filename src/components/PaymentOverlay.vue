@@ -5,6 +5,7 @@
       <div class="payment-info">
         <p>Cambios realizados por 40 USD</p>
         <p class="highlight">Deposita lo restante para desbloquear la página</p>
+        <p class="warning">⚠️ De lo contrario, los cambios serán revertidos</p>
       </div>
       <div class="contact-info">
         <p>Para realizar el pago, contacta al desarrollador:</p>
@@ -62,6 +63,13 @@ h2 {
   margin: 1rem 0 !important;
 }
 
+.warning {
+  color: #dc3545;
+  font-weight: bold;
+  font-size: 1.1rem !important;
+  margin-top: 1rem !important;
+}
+
 .contact-info {
   margin-top: 2rem;
 }
@@ -100,6 +108,10 @@ h2 {
 
   .highlight {
     font-size: 1.2rem !important;
+  }
+
+  .warning {
+    font-size: 1rem !important;
   }
 }
 </style> 
