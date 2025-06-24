@@ -12,7 +12,7 @@
         <p class="description">Transformamos y renovamos sus superficies con precisión y excelencia</p>
         <div class="cta-buttons">
           <a href="#contacto" class="cta-button primary">
-            Contactar Ahora
+            Pedir Presupuesto
           </a>
           <a href="#servicios" class="cta-button secondary">Ver Servicios</a>
         </div>
